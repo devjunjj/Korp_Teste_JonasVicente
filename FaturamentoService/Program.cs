@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using FaturamentoService.Data;
+using FaturamentoService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,11 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<FaturamentoDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("FaturamentoConnection")));
+
+builder.Services.AddHttpClient<EstoqueApiClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["EstoqueServiceUrl"]!);
+});    
 
 var app = builder.Build();
 
