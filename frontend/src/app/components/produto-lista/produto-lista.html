@@ -1,0 +1,28 @@
+<div class="produto-lista-container">
+  <h1>Produtos</h1>
+
+  @if (carregando) {
+    <mat-spinner diameter="40"></mat-spinner>
+  } @else {
+    <table mat-table [dataSource]="produtos" class="mat-elevation-z2">
+
+      <ng-container matColumnDef="codigo">
+        <th mat-header-cell *matHeaderCellDef>Código</th>
+        <td mat-cell *matCellDef="let produto">{{ produto.codigo }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="descricao">
+        <th mat-header-cell *matHeaderCellDef>Descrição</th>
+        <td mat-cell *matCellDef="let produto">{{ produto.descricao }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="saldo">
+        <th mat-header-cell *matHeaderCellDef>Saldo</th>
+        <td mat-cell *matCellDef="let produto">{{ produto.saldo }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="colunasExibidas"></tr>
+      <tr mat-row *matRowDef="let row; columns: colunasExibidas;"></tr>
+    </table>
+  }
+</div>
