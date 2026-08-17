@@ -90,5 +90,35 @@ namespace EstoqueService.Controllers
 
             return NoContent();
         }
+
+        public class BaixaEstoqueRequest
+        {
+            public int Quantidade { get; set; }
+        }
+
+        // PUT /api/produtos/5/baixa
+        [HttpPut("{id}/baixa")]
+        public async Task<IActionResult> BaixarEstoque(int id, BaixaEstoqueRequest request)
+        {
+            var produto = await _context.Produtos.FindAsync(id);
+
+            if (produto == null)
+            {
+                return NotFound(new { mensagem = $"Produto com Id {id} não encontrado." });
+            }
+
+            if (produto.Saldo < request.Quantidade)
+            {
+                return BadRequest(new
+                {
+                    mensagem = $"Saldo insuficiente para o produto '{produto.Descricao}'. Saldo atual: {produto.Saldo}, quantidade solicitada: {request.Quantidade}."
+                });
+            }
+
+            produto.Saldo -= request.Quantidade;
+            await _context.SaveChangesAsync();
+
+            return Ok(produto);
+        }
     }
 }
