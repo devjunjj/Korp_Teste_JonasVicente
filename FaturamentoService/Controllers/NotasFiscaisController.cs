@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FaturamentoService.Data;
@@ -12,6 +13,10 @@ namespace FaturamentoService.Controllers
     {
         private readonly FaturamentoDbContext _context;
         private readonly EstoqueApiClient _estoqueApiClient;
+
+        // Cache em memória usado para garantir idempotência do endpoint de impressão.
+        // Guarda o resultado da primeira execução para cada Idempotency-Key recebida.
+        private static readonly ConcurrentDictionary<string, (int StatusCode, object? Body)> _idempotencyCache = new();
 
         public NotasFiscaisController(FaturamentoDbContext context, EstoqueApiClient estoqueApiClient)
         {
@@ -63,8 +68,27 @@ namespace FaturamentoService.Controllers
         }
 
         // POST /api/notasfiscais/5/imprimir
+        // Aceita opcionalmente um cabeçalho "Idempotency-Key". Se a mesma chave for enviada
+        // novamente, a resposta da primeira execução é devolvida sem reprocessar a operação.
         [HttpPost("{id}/imprimir")]
-        public async Task<IActionResult> ImprimirNotaFiscal(int id)
+        public async Task<IActionResult> ImprimirNotaFiscal(int id, [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey)
+        {
+            if (!string.IsNullOrEmpty(idempotencyKey) && _idempotencyCache.TryGetValue(idempotencyKey, out var resultadoCacheado))
+            {
+                return StatusCode(resultadoCacheado.StatusCode, resultadoCacheado.Body);
+            }
+
+            var resultado = await ProcessarImpressaoAsync(id);
+
+            if (!string.IsNullOrEmpty(idempotencyKey))
+            {
+                _idempotencyCache[idempotencyKey] = resultado;
+            }
+
+            return StatusCode(resultado.StatusCode, resultado.Body);
+        }
+
+        private async Task<(int StatusCode, object? Body)> ProcessarImpressaoAsync(int id)
         {
             var nota = await _context.NotasFiscais
                 .Include(n => n.Itens)
@@ -72,65 +96,53 @@ namespace FaturamentoService.Controllers
 
             if (nota == null)
             {
-                return NotFound(new { mensagem = $"Nota Fiscal com Id {id} não encontrada." });
+                return (404, new { mensagem = $"Nota Fiscal com Id {id} não encontrada." });
             }
 
             if (nota.Status != StatusNotaFiscal.Aberta)
             {
-                return BadRequest(new { mensagem = "Só é possível imprimir notas fiscais com status Aberta." });
+                return (400, new { mensagem = "Só é possível imprimir notas fiscais com status Aberta." });
             }
 
             try
             {
-                // Passo 1: validar cada item (produto existe? tem saldo suficiente?)
                 foreach (var item in nota.Itens)
                 {
                     var produto = await _estoqueApiClient.BuscarProdutoAsync(item.ProdutoId);
 
                     if (produto == null)
                     {
-                        return BadRequest(new
-                        {
-                            mensagem = $"Produto de Id {item.ProdutoId} não encontrado no Estoque."
-                        });
+                        return (400, new { mensagem = $"Produto de Id {item.ProdutoId} não encontrado no Estoque." });
                     }
 
                     if (produto.Saldo < item.Quantidade)
                     {
-                        return BadRequest(new
+                        return (400, new
                         {
                             mensagem = $"Saldo insuficiente para o produto '{produto.Descricao}'. Saldo atual: {produto.Saldo}, solicitado: {item.Quantidade}."
                         });
                     }
                 }
 
-                // Passo 2: se passou em todas as validações, abater o saldo de fato
                 foreach (var item in nota.Itens)
                 {
                     var sucesso = await _estoqueApiClient.BaixarEstoqueAsync(item.ProdutoId, item.Quantidade);
 
                     if (!sucesso)
                     {
-                        return StatusCode(500, new
-                        {
-                            mensagem = $"Falha ao abater saldo do produto {item.ProdutoId}. A nota não foi fechada."
-                        });
+                        return (500, new { mensagem = $"Falha ao abater saldo do produto {item.ProdutoId}. A nota não foi fechada." });
                     }
                 }
             }
             catch (HttpRequestException)
             {
-                return StatusCode(503, new
-                {
-                    mensagem = "Serviço de Estoque está indisponível no momento. Não foi possível imprimir a nota. Tente novamente em instantes."
-                });
+                return (503, new { mensagem = "Serviço de Estoque está indisponível no momento. Não foi possível imprimir a nota. Tente novamente em instantes." });
             }
 
-            // Passo 3: fechar a nota
             nota.Status = StatusNotaFiscal.Fechada;
             await _context.SaveChangesAsync();
 
-            return Ok(nota);
+            return (200, nota);
         }
     }
 }
