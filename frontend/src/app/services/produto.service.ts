@@ -7,7 +7,7 @@ import { Produto } from '../models/produto';
   providedIn: 'root'
 })
 export class ProdutoService {
-  private readonly apiUrl = 'https://fuzzy-spoon-wr9xpx45q5gwc5697-5001.app.github.dev/api/produtos';
+  private readonly apiUrl = 'http://localhost:5001/api/produtos';
 
   constructor(private http: HttpClient) { }
 

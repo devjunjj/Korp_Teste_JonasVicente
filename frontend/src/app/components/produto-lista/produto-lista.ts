@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,25 +25,27 @@ export class ProdutoLista implements OnInit {
   carregando = true;
   colunasExibidas: string[] = ['codigo', 'descricao', 'saldo'];
 
-  constructor(private produtoService: ProdutoService) { }
+  constructor(
+    private produtoService: ProdutoService,
+    private cdr: ChangeDetectorRef
+  ) { }
 
   ngOnInit(): void {
     this.carregarProdutos();
   }
 
   carregarProdutos(): void {
-    console.log('1. Iniciando busca de produtos...');
     this.carregando = true;
     this.produtoService.listar().subscribe({
       next: (produtos) => {
-        console.log('2. Dados recebidos:', produtos);
         this.produtos = produtos;
         this.carregando = false;
-        console.log('3. carregando agora é:', this.carregando);
+        this.cdr.detectChanges();
       },
       error: (erro) => {
-        console.error('ERRO ao carregar produtos:', erro);
+        console.error('Erro ao carregar produtos:', erro);
         this.carregando = false;
+        this.cdr.detectChanges();
       }
     });
   }
