@@ -85,6 +85,16 @@ Cenário implementado e testado: ao tentar imprimir uma nota fiscal com o Estoqu
 
 ## Requisitos opcionais implementados
 
+### Uso de Inteligência Artificial
+
+Implementado no `EstoqueService`, através de um novo endpoint `POST /api/produtos/sugerir-descricao`, que utiliza a **API do Google Gemini** (modelo `gemini-3.6-flash`) para sugerir automaticamente uma descrição de produto a partir do código digitado pelo usuário.
+
+- A classe `GeminiService` encapsula a chamada HTTP para a API do Gemini, montando um prompt direcionado (pedindo uma descrição curta e objetiva) e extraindo o texto da resposta.
+- A chave de API é armazenada de forma segura utilizando **User Secrets** do .NET, nunca sendo commitada no repositório.
+- No frontend, um botão "Sugerir com IA" na tela de cadastro de Produto chama esse endpoint e preenche automaticamente o campo de descrição com o resultado, com indicador de carregamento durante o processamento e tratamento de erro caso a API de IA esteja indisponível.
+
+Essa funcionalidade demonstra a integração do sistema com um serviço de IA generativa externo, agregando valor prático ao fluxo de cadastro de produtos (agilizando o preenchimento de descrições).
+
 ### Tratamento de Concorrência
 
 Implementado no `EstoqueService`, no endpoint de baixa de estoque (`PUT /api/produtos/{id}/baixa`), utilizando **concorrência otimista** do Entity Framework Core:
@@ -149,7 +159,7 @@ Acesse `http://localhost:4200`. É necessário que os três (EstoqueService, Fat
 - [x] Tratamento de concorrência 
 - [x] Idempotência 
 - [ ] Vídeo de apresentação
-- [ ] Uso de IA — não implementado
+- [x] Uso de IA 
 
 ## Autor
 
