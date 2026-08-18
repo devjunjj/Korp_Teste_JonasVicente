@@ -1,4 +1,5 @@
 using EstoqueService.Data;
+using EstoqueService.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,8 @@ builder.Services.AddCors(options =>
         policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
     });
 });
+
+builder.Services.AddHttpClient<GeminiService>(client => { client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/"); });
 
 var app = builder.Build();
 

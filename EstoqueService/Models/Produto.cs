@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace EstoqueService.Models
 {
     public class Produto
@@ -6,5 +8,8 @@ namespace EstoqueService.Models
         public string Codigo { get; set; } = string.Empty;
         public string Descricao { get; set; } = string.Empty;
         public int Saldo { get; set; }
+
+        [ConcurrencyCheck]
+        public int Version { get; set; } = 0;
     }
 }

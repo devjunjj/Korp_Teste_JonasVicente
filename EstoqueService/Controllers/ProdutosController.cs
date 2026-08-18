@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using EstoqueService.Data;
 using EstoqueService.Models;
+using EstoqueService.Services;
 
 namespace EstoqueService.Controllers
 {
@@ -10,10 +11,12 @@ namespace EstoqueService.Controllers
     public class ProdutosController : ControllerBase
     {
         private readonly EstoqueDbContext _context;
+        private readonly GeminiService _geminiService;
 
-        public ProdutosController(EstoqueDbContext context)
+        public ProdutosController(EstoqueDbContext context, GeminiService geminiService)
         {
             _context = context;
+            _geminiService = geminiService;
         }
 
         // GET /api/produtos
@@ -100,25 +103,77 @@ namespace EstoqueService.Controllers
         [HttpPut("{id}/baixa")]
         public async Task<IActionResult> BaixarEstoque(int id, BaixaEstoqueRequest request)
         {
-            var produto = await _context.Produtos.FindAsync(id);
+            const int maxTentativas = 3;
 
-            if (produto == null)
+            for (int tentativa = 1; tentativa <= maxTentativas; tentativa++)
             {
-                return NotFound(new { mensagem = $"Produto com Id {id} não encontrado." });
+                var produto = await _context.Produtos.FindAsync(id);
+
+                if (produto == null)
+                {
+                    return NotFound(new { mensagem = $"Produto com Id {id} não encontrado." });
+                }
+
+                if (produto.Saldo < request.Quantidade)
+                {
+                    return BadRequest(new
+                    {
+                        mensagem = $"Saldo insuficiente para o produto '{produto.Descricao}'. Saldo atual: {produto.Saldo}, quantidade solicitada: {request.Quantidade}."
+                    });
+                }
+
+                produto.Saldo -= request.Quantidade;
+                produto.Version++;
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+                    return Ok(produto);
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    _context.Entry(produto).State = EntityState.Detached;
+
+                    if (tentativa == maxTentativas)
+                    {
+                        return Conflict(new
+                        {
+                            mensagem = "Não foi possível atualizar o saldo devido a alterações concorrentes. Tente novamente."
+                        });
+                    }
+                }
             }
 
-            if (produto.Saldo < request.Quantidade)
+            return StatusCode(500, new { mensagem = "Erro inesperado ao processar a baixa de estoque." });
+        }
+
+        public class SugerirDescricaoRequest
+        {
+            public string Codigo { get; set; } = string.Empty;
+        }
+
+        // POST /api/produtos/sugerir-descricao
+        [HttpPost("sugerir-descricao")]
+        public async Task<IActionResult> SugerirDescricao(SugerirDescricaoRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Codigo))
             {
-                return BadRequest(new
+                return BadRequest(new { mensagem = "Código é obrigatório para sugerir uma descrição." });
+            }
+
+            try
+            {
+                var descricaoSugerida = await _geminiService.SugerirDescricaoAsync(request.Codigo);
+                return Ok(new { descricaoSugerida });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(502, new
                 {
-                    mensagem = $"Saldo insuficiente para o produto '{produto.Descricao}'. Saldo atual: {produto.Saldo}, quantidade solicitada: {request.Quantidade}."
+                    mensagem = "Não foi possível gerar a sugestão de descrição no momento.",
+                    detalhe = ex.Message
                 });
             }
-
-            produto.Saldo -= request.Quantidade;
-            await _context.SaveChangesAsync();
-
-            return Ok(produto);
         }
     }
 }
