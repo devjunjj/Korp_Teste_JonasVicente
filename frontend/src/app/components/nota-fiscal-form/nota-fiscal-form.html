@@ -1,0 +1,42 @@
+<div class="nota-fiscal-form-container">
+  <h1>Nova Nota Fiscal</h1>
+
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <div formArrayName="itens">
+      @for (item of itens.controls; track item; let i = $index) {
+        <div [formGroupName]="i" class="linha-item">
+          <mat-form-field appearance="outline" class="campo-produto">
+            <mat-label>Produto</mat-label>
+            <mat-select formControlName="produtoId">
+              @for (produto of produtos; track produto.id) {
+                <mat-option [value]="produto.id">
+                  {{ produto.codigo }} - {{ produto.descricao }} (saldo: {{ produto.saldo }})
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="campo-quantidade">
+            <mat-label>Quantidade</mat-label>
+            <input matInput type="number" formControlName="quantidade">
+          </mat-form-field>
+
+          <button mat-icon-button type="button" color="warn" (click)="removerItem(i)" [disabled]="itens.length === 1">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+
+    <button mat-button type="button" (click)="adicionarItem()">
+      <mat-icon>add</mat-icon> Adicionar produto
+    </button>
+
+    <div class="acoes">
+      <button mat-button type="button" (click)="cancelar()">Cancelar</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="enviando">
+        {{ enviando ? 'Salvando...' : 'Salvar' }}
+      </button>
+    </div>
+  </form>
+</div>
