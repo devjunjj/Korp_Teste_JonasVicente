@@ -1,6 +1,8 @@
 <div class="produto-lista-container">
   <h1>Produtos</h1>
 
+  <button mat-flat-button color="primary" routerLink="/produtos/novo">Novo Produto</button>
+
   @if (carregando) {
     <mat-spinner diameter="40"></mat-spinner>
   } @else {
@@ -19,6 +21,15 @@
       <ng-container matColumnDef="saldo">
         <th mat-header-cell *matHeaderCellDef>Saldo</th>
         <td mat-cell *matCellDef="let produto">{{ produto.saldo }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="acoes">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let produto">
+          <button mat-icon-button color="warn" (click)="excluirProduto(produto.id)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="colunasExibidas"></tr>
