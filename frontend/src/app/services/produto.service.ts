@@ -8,7 +8,7 @@ import { Produto } from '../models/produto';
 })
 export class ProdutoService {
   private readonly apiUrl = 'http://localhost:5001/api/produtos';
-  
+
   constructor(private http: HttpClient) { }
 
   listar(): Observable<Produto[]> {
@@ -21,5 +21,9 @@ export class ProdutoService {
 
   excluir(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  sugerirDescricao(codigo: string): Observable<{ descricaoSugerida: string }> {
+    return this.http.post<{ descricaoSugerida: string }>(`${this.apiUrl}/sugerir-descricao`, { codigo });
   }
 }

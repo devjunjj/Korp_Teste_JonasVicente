@@ -1,6 +1,6 @@
 .produto-form-container {
   padding: 24px;
-  max-width: 500px;
+  max-width: 550px;
 
   h1 {
     margin-bottom: 16px;
@@ -9,6 +9,21 @@
   .campo-completo {
     width: 100%;
     margin-bottom: 8px;
+  }
+
+  .linha-descricao {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+
+    .campo-descricao {
+      flex: 1;
+    }
+
+    .botao-ia {
+      margin-top: 8px;
+      white-space: nowrap;
+    }
   }
 
   .acoes {

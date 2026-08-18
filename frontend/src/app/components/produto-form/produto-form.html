@@ -10,13 +10,30 @@
       }
     </mat-form-field>
 
-    <mat-form-field appearance="outline" class="campo-completo">
-      <mat-label>Descrição</mat-label>
-      <input matInput formControlName="descricao" placeholder="Ex: Caneta azul">
-      @if (form.get('descricao')?.hasError('required') && form.get('descricao')?.touched) {
-        <mat-error>Descrição é obrigatória</mat-error>
-      }
-    </mat-form-field>
+    <div class="linha-descricao">
+      <mat-form-field appearance="outline" class="campo-descricao">
+        <mat-label>Descrição</mat-label>
+        <input matInput formControlName="descricao" placeholder="Ex: Caneta azul">
+        @if (form.get('descricao')?.hasError('required') && form.get('descricao')?.touched) {
+          <mat-error>Descrição é obrigatória</mat-error>
+        }
+      </mat-form-field>
+
+      <button
+        mat-stroked-button
+        type="button"
+        class="botao-ia"
+        [disabled]="sugerindo"
+        (click)="sugerirDescricao()">
+        @if (sugerindo) {
+          <mat-spinner diameter="18"></mat-spinner>
+        } @else {
+          <ng-container>
+            <mat-icon>auto_awesome</mat-icon> Sugerir com IA
+          </ng-container>
+        }
+      </button>
+    </div>
 
     <mat-form-field appearance="outline" class="campo-completo">
       <mat-label>Saldo inicial</mat-label>

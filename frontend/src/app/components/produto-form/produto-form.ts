@@ -5,6 +5,8 @@ import { Router } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ProdutoService } from '../../services/produto.service';
 
@@ -17,6 +19,8 @@ import { ProdutoService } from '../../services/produto.service';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
     MatSnackBarModule
   ],
   templateUrl: './produto-form.html',
@@ -25,6 +29,7 @@ import { ProdutoService } from '../../services/produto.service';
 export class ProdutoForm {
   form: FormGroup;
   enviando = false;
+  sugerindo = false;
 
   constructor(
     private fb: FormBuilder,
@@ -36,6 +41,29 @@ export class ProdutoForm {
       codigo: ['', [Validators.required, Validators.maxLength(20)]],
       descricao: ['', [Validators.required, Validators.maxLength(100)]],
       saldo: [0, [Validators.required, Validators.min(0)]]
+    });
+  }
+
+  sugerirDescricao(): void {
+    const codigo = this.form.get('codigo')?.value;
+
+    if (!codigo) {
+      this.snackBar.open('Preencha o código do produto antes de pedir uma sugestão.', 'Fechar', { duration: 3000 });
+      return;
+    }
+
+    this.sugerindo = true;
+    this.produtoService.sugerirDescricao(codigo).subscribe({
+      next: (resposta) => {
+        this.form.patchValue({ descricao: resposta.descricaoSugerida });
+        this.sugerindo = false;
+      },
+      error: (erro) => {
+        console.error('Erro ao sugerir descrição:', erro);
+        const mensagem = erro.error?.mensagem || 'Não foi possível gerar a sugestão.';
+        this.snackBar.open(mensagem, 'Fechar', { duration: 3000 });
+        this.sugerindo = false;
+      }
     });
   }
 
